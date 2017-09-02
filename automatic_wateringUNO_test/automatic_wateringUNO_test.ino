@@ -10,7 +10,8 @@ void EEPROMclear();
 void switchTimer();
 void help();
 
-void setup() 
+void setup()
+ 
 {
   pinMode(Wetlavel,INPUT);
   pinMode(8,OUTPUT);
