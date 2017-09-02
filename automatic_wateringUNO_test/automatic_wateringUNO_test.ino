@@ -21,35 +21,37 @@ void setup()
   Serial.println(time.gettime("d-m-Y, H:i:s, D"));
   Serial.println("enter h for help");
   time.gettime();
-  if (EEPROM.read(503) == 0)
+  if (EEPROM.read(1003) == 0)
   {
-    EEPROM.write(500,time.Hours);
-    EEPROM.write(501,time.day);
-    EEPROM.write(502,time.month);  
-    EEPROM.write(503,1);
-    EEPROM.write(504,0);
+    EEPROM.write(1001,time.Hours);
+    EEPROM.write(1002,time.day);
+    EEPROM.write(1003,time.month);  
+    EEPROM.write(1004,1);
+    EEPROM.write(1005,0);
   }
   digitalWrite(8,LOW);
-  Hr = time.seconds;
+  Hr = time.Hours;
 }
 void loop() 
 {    
-  time.gettime();          
-  Serial.print("Wetvalue-now = ");
-  Serial.println(analogRead(Wetlavel));
-  if (time.seconds!= Hr)
+   
+ /* Serial.print("Wetvalue-now = ");
+  Serial.println(analogRead(Wetlavel));*/
+  time.gettime();       
+  if (time.Hours!= Hr)
   {
   digitalWrite(8,HIGH);
    EEPROMwrite();
   delay(5000);
-  Hr = time.seconds;
+  Hr = time.Hours;
   digitalWrite(8,LOW);
   }
+  delay(5000);
 }
 
 void EEPROMwrite()
 {
-  unsigned short addr = EEPROM.read(504);  
+  unsigned short addr = EEPROM.read(1005);  
      time.gettime(); 
      Serial.println("****** Write start ******"); 
      Serial.print("value"); 
@@ -61,7 +63,7 @@ void EEPROMwrite()
      addr++;
      EEPROM.write(addr,analogRead(Wetlavel) / 4);
      addr++;
-     EEPROM.write(4,addr);
+     EEPROM.write(1005,addr);
 return 0;
 }
                    
@@ -69,15 +71,15 @@ void EEPROMread()
 { 
  byte j = 1;
  Serial.println("****** Read start ******");
- Serial.print(EEPROM.read(500));
+ Serial.print(EEPROM.read(1000));
  Serial.print(" Hours : ");
- Serial.print(EEPROM.read(501));
+ Serial.print(EEPROM.read(1001));
  Serial.print(" Days : ");
- Serial.print(EEPROM.read(502));
+ Serial.print(EEPROM.read(1002));
  Serial.println(" Month");
-  for(unsigned short i = 3;i<=EEPROM.read(504);i++)
+  for(unsigned short i = 1;i<=EEPROM.read(1005);i++)
     { 
-       if (i%2==0) //чередование времени и значений 
+       if (i%2!=0) //чередование времени и значений 
        {
        Serial.print("Wetvalue");
        Serial.print("["); 
@@ -105,11 +107,11 @@ void EEPROMclear()
      Serial.println(i);
      EEPROM.write(i,0);               
     } 
-  EEPROM.write(500,time.Hours);
-  EEPROM.write(501,time.day);
-  EEPROM.write(502,time.month);
-  EEPROM.write(503,1);  
-  EEPROM.write(504,0);
+  EEPROM.write(1000,time.Hours);
+  EEPROM.write(1001,time.day);
+  EEPROM.write(1002,time.month);
+  EEPROM.write(1003,1);  
+  EEPROM.write(1004,5);
 return 0;
 }
 
