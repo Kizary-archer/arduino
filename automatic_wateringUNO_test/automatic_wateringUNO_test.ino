@@ -127,19 +127,17 @@ void switchTimer()
   int val;
   if (Serial.available() > 0)
   {
-  val = Serial.read();
-  if (val=='w') EEPROMwrite();
-  else
-  if (val=='r') EEPROMread();
-  else
-  if (val=='c') EEPROMclear();
-  else
-  if (val=='h') help();
-  else
-  {
-    Serial.println("this command does not exist");
-    Serial.println("enter h for help");
-  }
+    val = Serial.read();
+    switch(val)
+    {
+      case 'w': EEPROMwrite();
+      case 'r': EEPROMread();
+      case 'c': EEPROMclear();
+      case 'h': help();
+      default :
+        Serial.println("this command does not exist");
+        Serial.println("enter h for help");
+    }
   }
 return 0;
 }
