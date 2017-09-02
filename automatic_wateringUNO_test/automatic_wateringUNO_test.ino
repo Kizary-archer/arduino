@@ -1,3 +1,4 @@
+//да прибудут со мной Git технологии заморские
 #include <EEPROM.h>
 #include <MsTimer2.h>
 #include <iarduino_RTC.h>
