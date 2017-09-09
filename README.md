@@ -1,3 +1,3 @@
 # arduino
 
-Proect "automatic_watering"
+Project "automatic_watering"
