@@ -1,35 +1,40 @@
 #include <EEPROM.h>
 #include <MsTimer2.h>
 #include <iarduino_RTC.h>
-#define WetsensorPower 8
+#define WetsensorPower 8 //подача питания на 
 #define TimeSensorHours 1000 //Часы в памяти
 #define TimeSensorDays 1001 //Дни в памяти
 #define TimeSensorMonth 1002 // Месяц в памяти
 #define keeper 1003 //Сторож перезаписи данных
 #define countlog 1004 // размер лога
-#define Wetlavel  0
+#define Hour 1005 // Час последней записи 
+#define Wetlavelnow  0
+#define WetLavellog 1006 // минимальный уровень влажности
+#define WetLavelEditPower  7
 iarduino_RTC time(RTC_DS1307);
-byte Hr; //Hours
 void EEPROMread();
 void EEPROMwrite();
 void EEPROMclear();
 void switchTimer();
 void help();
+void WetlavelEdit();
 
 void setup()
 {
-  pinMode(Wetlavel, INPUT);
+  pinMode(Wetlavelnow, INPUT);
   pinMode(WetsensorPower, OUTPUT);
-  pinMode(9, INPUT_PULLUP);
+  pinMode(WetLavelEditPower, OUTPUT);
+  pinMode(3, INPUT_PULLUP);
+  digitalWrite(WetLavelEditPower, HIGH);
   pinMode(12, OUTPUT);
   Serial.begin(9600);
   MsTimer2::set(2, switchTimer); // задаем период прерывания по таймеру 2 мс
   MsTimer2::start();
   time.begin();
+  time.gettime();
   Serial.println("v1.3");
   Serial.println(time.gettime("d-m-Y, H:i:s, D"));
   Serial.println("enter h for help");
-  time.gettime();
   if (EEPROM.read(keeper) == 0)
   {
     EEPROM.write(TimeSensorHours, time.Hours);
@@ -37,15 +42,15 @@ void setup()
     EEPROM.write(TimeSensorMonth, time.month);
     EEPROM.write(keeper, 1);
     EEPROM.write(countlog, 0);
+    EEPROM.write(Hour, time.Hours);
   }
-  Hr = time.Hours;
 }
 void(* resetFunc) (void) = 0;//объявляем функцию reset с адресом 0
 void loop()
 {
   time.gettime();
-  if (time.Hours != Hr) EEPROMwrite();
-  delay(5000);
+  if (time.Hours != EEPROM.read(Hour)) EEPROMwrite();
+  delay(1800000);
 }
 
 void EEPROMwrite()
@@ -67,13 +72,13 @@ void EEPROMwrite()
   Serial.print("] = ");
   digitalWrite(WetsensorPower, HIGH);
   delay(5000);
-  Serial.println(map (analogRead(Wetlavel), 0, 1023, 0, 255));
+  Serial.println(map (analogRead(Wetlavelnow), 0, 1023, 0, 255));
   EEPROM.write(addr, time.Hours);
   addr++;
-  EEPROM.write(addr, map (analogRead(Wetlavel), 0, 1023, 0, 255));
+  EEPROM.write(addr, map (analogRead(Wetlavelnow), 0, 1023, 0, 255));
   addr++;
   EEPROM.write(countlog, addr);
-  Hr = time.Hours;
+  EEPROM.write(Hour, time.Hours);
   digitalWrite(WetsensorPower, LOW);
   return 0;
 }
@@ -134,9 +139,18 @@ void EEPROMclear()
   resetFunc();
   return 0;
 }
-void WetlavelEdit ()
+void WetlavelEdit (boolean ButtonPush)
 {
-  /////////////////////////////////////////
+  byte Map = map (analogRead(1), 0, 1023, 0, 255);
+  digitalWrite(WetLavelEditPower, HIGH);
+  while (ButtonPush) {
+
+    Serial.println("LevelEdit = ");
+    Serial.print(Map);
+    if (digitalRead(3) == LOW) ButtonPush = 0;
+
+  }
+  digitalWrite(WetLavelEditPower, LOW);
 }
 void watering ()
 {
@@ -157,7 +171,7 @@ void help()
 }
 void switchTimer()
 {
-  digitalWrite(12, ! digitalRead(9) );
+
   byte val;
   if (Serial.available() > 0)
   {
@@ -166,7 +180,7 @@ void switchTimer()
     else if (val == 'r') EEPROMread(EEPROM.read(countlog));
     else if (val == 'a') EEPROMread(1024);
     else if (val == 'n') {
-     boolean b = digitalRead(WetsensorPower) ;
+      boolean b = digitalRead(WetsensorPower) ;
       digitalWrite(WetsensorPower , !b);
     }
     else if (val == 'c') EEPROMclear();
