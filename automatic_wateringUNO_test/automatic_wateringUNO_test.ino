@@ -26,13 +26,15 @@ void setup()
   pinMode(WetsensorPower, OUTPUT);
   pinMode(WetlavelEditPower, OUTPUT);
   pinMode(Button, INPUT_PULLUP);
-  digitalWrite(Button, HIGH);
+  pinMode(5, OUTPUT);
+ // digitalWrite(Button, HIGH);
+  //digitalWrite(5, HIGH);
   Serial.begin(9600);
   MsTimer2::set(100, switchTimer); // задаем период прерывания по таймеру 100 мс
   MsTimer2::start();
   time.begin();
   time.gettime();
-  Serial.println("v1.4");
+  Serial.println("v1.5");
   Serial.println(time.gettime("d-m-Y, H:i:s, D"));
   Serial.println("enter h for help");
   if (EEPROM.read(keeper) == 0)
@@ -141,29 +143,22 @@ void EEPROMclear()
 }
 void WetlavelEdit ()
 {
-  boolean ButtonPush = 1;
   digitalWrite(WetlavelEditPower, HIGH);
-  delay(20000);
-  while (ButtonPush)
+  while (digitalRead(Button) == LOW)
   {
     Serial.print("LevelEdit = ");
     Serial.println(map (analogRead(1), 0, 1023, 0, 255));
-    if (!digitalRead(Button))
-    {
-      ButtonPush = 0;
-      EEPROM.write(Wetlavelmin, map (analogRead(1), 0, 1023, 0, 255));
-      Serial.print("LevelEdit****** = ");
-      Serial.println(map (analogRead(1), 0, 1023, 0, 255));
-      digitalWrite(WetlavelEditPower, LOW);
-      delay(100);
-      
-    }
   }
+  EEPROM.write(Wetlavelmin, map (analogRead(1), 0, 1023, 0, 255));
+  Serial.print("LevelEdit****** = ");
+  Serial.println(map (analogRead(1), 0, 1023, 0, 255));
+  digitalWrite(WetlavelEditPower, LOW);
+  delay(500);
   return 0;
 }
 void watering ()
 {
-  //////////////////////////////////////
+
 }
 void help()
 {
@@ -188,19 +183,12 @@ void switchTimer()
     if (val == 'w') EEPROMwrite();
     else if (val == 'r') EEPROMread(EEPROM.read(countlog));
     else if (val == 'a') EEPROMread(1024);
-    else if (val == 'n') {
-      digitalWrite(WetsensorPower , ! digitalRead(WetsensorPower));
-    }
+    else if (val == 'n') digitalWrite(WetsensorPower , ! digitalRead(WetsensorPower));
     else if (val == 'c') EEPROMclear();
-    else if (val == 'R') {
-      EEPROM.write(countlog, 0);
-      Serial.println("*** RESTART ***");
-      delay(2000);
-      resetFunc();
-    }
+    else if (val == 'R') resetFunc();
+    else if (val == 'm')  digitalWrite(5 , ! digitalRead(5));
     else if (val == 'h') help();
     else
-
     {
       Serial.println("this command does not exist");
       Serial.println("enter h for help");
