@@ -38,10 +38,10 @@ void setup()
   MsTimer2::start();
   time.begin();
   time.gettime();
-  //  time.period(10);
+  time.period(10);
   tm1637.init();
   tm1637.set(BRIGHT_DARKEST);
-  Serial.println("v1.5");
+  Serial.println("v1.7");
   Serial.println(time.gettime("d-m-Y, H:i:s, D"));
   Serial.println("enter h for help");
   if (EEPROM.read(keeper) == 0)
@@ -59,7 +59,6 @@ void loop()
 {
   time.gettime();
   if (time.Hours != EEPROM.read(Hour)) EEPROMwrite();
-  delay(2000);
 }
 
 void EEPROMwrite()
@@ -86,7 +85,7 @@ void EEPROMwrite()
   EEPROM.write(addr, map (analogRead(Wetlavelnow), 0, 1023, 0, 255));
   int val = map(EEPROM.read(addr), 0 , 255 , 0, 1023 );
   tm1637.display(val);
-  //if (EEPROM.read(addr) > EEPROM.read(Wetlavelmin)) watering ();
+  if (EEPROM.read(addr) > EEPROM.read(Wetlavelmin)) watering (); //полив
   addr++;
   EEPROM.write(countlog, addr);
   EEPROM.write(Hour, time.Hours);
@@ -133,9 +132,7 @@ void EEPROMread(unsigned short ind)
       j++;
     }
   }
-
 }
-
 void EEPROMclear(unsigned short ind)
 {
   Serial.println("****** clear start ******");
@@ -161,7 +158,7 @@ void WetlavelEdit ()
     tm1637.display(analogRead(1));
     delay(10000);
   }
-  byte sensVal = constrain(map (analogRead(1), 0, 1023, 0, 254), 90, 254); //ограничение 90-254
+  byte sensVal = constrain(map (analogRead(1), 0, 1023, 0, 254), 100, 254); //ограничение 100-254
   EEPROM.write(Wetlavelmin, sensVal );
   Serial.print("LevelEdit****** = ");
   Serial.println(analogRead(1));
@@ -169,7 +166,6 @@ void WetlavelEdit ()
   digitalWrite(WetlavelEditPower, LOW);
   delay(10000);
   EEPROMwrite();
-
 }
 void watering ()
 {
@@ -181,8 +177,7 @@ void watering ()
       W = 0;
     }
   }
-  digitalWrite(pomp, LOW);
-   Serial.println("************");
+  digitalWrite(pomp, LOW);  
 }
 void help()
 {
@@ -196,8 +191,6 @@ void help()
   Serial.println("a - Read all");
   Serial.println("n - WetsensorActivate");
   Serial.println("m - PompActivate");
-
-
 }
 void switchTimer()
 {
@@ -209,7 +202,7 @@ void switchTimer()
     else if (val == 'a') EEPROMread(1024);
     else if (val == 'n') digitalWrite(WetsensorPower , ! digitalRead(WetsensorPower));
     else if (val == 'c') EEPROMclear(255);
-    else if (val == 'C') EEPROMclear(1024);
+    else if (val == 'C') EEPROMclear(1023); //после запуска функции нужно установить мин. влажность!!!
     else if (val == 'R') resetFunc();
     else if (val == 'W') watering ();
     else if (val == 'm')  digitalWrite(pomp , ! digitalRead(pomp));
