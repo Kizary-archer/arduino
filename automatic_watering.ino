@@ -23,6 +23,7 @@ void EEPROMclear();
 void switchTimer();
 void help();
 void WetlavelEdit();
+void analize ();
 
 void setup()
 {
@@ -38,12 +39,13 @@ void setup()
   MsTimer2::start();
   time.begin();
   time.gettime();
-  time.period(10);
   tm1637.init();
   tm1637.set(BRIGHT_DARKEST);
-  Serial.println("v1.7");
+  Serial.println("v1.8.0");
   Serial.println(time.gettime("d-m-Y, H:i:s, D"));
   Serial.println("enter h for help");
+  int val = map(EEPROM.read(countlog+1), 0 , 255 , 0, 1023 );
+  tm1637.display(val);
   if (EEPROM.read(keeper) == 0)
   {
     EEPROM.write(TimeSensorHours, time.Hours);
@@ -53,6 +55,7 @@ void setup()
     EEPROM.write(countlog, 0);
     EEPROM.write(Hour, time.Hours);
   }
+  if (EEPROM.read(Wetlavelmin) == 0) EEPROM.write(Wetlavelmin, 150);
 }
 void(* resetFunc) (void) = 0;//объявляем функцию reset с адресом 0
 void loop()
@@ -164,20 +167,23 @@ void WetlavelEdit ()
   Serial.println(analogRead(1));
   tm1637.point(false);
   digitalWrite(WetlavelEditPower, LOW);
-  delay(10000);
-  EEPROMwrite();
+  int val = map(EEPROM.read(countlog+1), 0 , 255 , 0, 1023 );
+  tm1637.display(val);
 }
 void watering ()
 {
-  int W = 1, s = millis();
+  int W = 1;
+  unsigned long ts = millis();
   digitalWrite(pomp, HIGH);
   while (W) {
-    if (millis() - s > 4000)
-    {
-      W = 0;
-    }
+    unsigned long currentMillis = millis();
+    if (currentMillis - ts > 4000) W = 0;
   }
-  digitalWrite(pomp, LOW);  
+  digitalWrite(pomp, LOW);
+}
+void analize ()
+{
+
 }
 void help()
 {
