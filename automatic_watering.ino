@@ -38,13 +38,15 @@ void setup()
   MsTimer2::set(100, switchTimer); // задаем период прерывания по таймеру 100 мс
   MsTimer2::start();
   time.begin();
+  time.period(10);
   time.gettime();
   tm1637.init();
   tm1637.set(BRIGHT_DARKEST);
-  Serial.println("v1.8.0");
+  Serial.println("v1.8.2");
   Serial.println(time.gettime("d-m-Y, H:i:s, D"));
   Serial.println("enter h for help");
-  int val = map(EEPROM.read(countlog+1), 0 , 255 , 0, 1023 );
+  byte addr = EEPROM.read(countlog);
+  int val = map(EEPROM.read(addr-1), 0 , 255 , 0, 1023 );
   tm1637.display(val);
   if (EEPROM.read(keeper) == 0)
   {
@@ -167,7 +169,8 @@ void WetlavelEdit ()
   Serial.println(analogRead(1));
   tm1637.point(false);
   digitalWrite(WetlavelEditPower, LOW);
-  int val = map(EEPROM.read(countlog+1), 0 , 255 , 0, 1023 );
+  byte addr = EEPROM.read(countlog);
+  int val = map(EEPROM.read(addr-1), 0 , 255 , 0, 1023 );
   tm1637.display(val);
 }
 void watering ()
