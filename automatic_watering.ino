@@ -23,6 +23,7 @@ void EEPROMclear();
 void switchTimer();
 void help();
 void WetlavelEdit();
+void timerDelay();
 void analize ();
 
 void setup()
@@ -35,7 +36,7 @@ void setup()
   pinMode(DispPower, OUTPUT);
   digitalWrite(DispPower, HIGH);
   Serial.begin(9600);
-  MsTimer2::set(500, switchTimer); // задаем период прерывания по таймеру 500 мс
+  MsTimer2::set(1000, switchTimer); // задаем период прерывания по таймеру 500 мс
   MsTimer2::start();
   time.begin();
   time.period(10);
@@ -66,11 +67,11 @@ void loop()
 {
   time.gettime();
   if (time.Hours != EEPROM.read(Hour)) EEPROMwrite();
-  watering ();
 }
 
 void EEPROMwrite()
 {
+  MsTimer2::stop();
   byte addr = EEPROM.read(countlog), full = EEPROM.read(256);
   if (addr >= 255) //Переполнение памяти EEPROM
   {
@@ -86,7 +87,7 @@ void EEPROMwrite()
   Serial.print(addr);
   Serial.print("] = ");
   digitalWrite(WetsensorPower, HIGH);
-  delay(5000);
+  timerDelay(5000);
   Serial.println(analogRead(Wetlavelnow));
   EEPROM.write(addr, time.Hours);
   addr++;
@@ -98,7 +99,7 @@ void EEPROMwrite()
   addr++;
   EEPROM.write(countlog, addr);
   EEPROM.write(Hour, time.Hours);
-
+  MsTimer2::start();
 }
 
 void EEPROMread(unsigned short ind)
@@ -165,7 +166,7 @@ void WetlavelEdit ()
     Serial.print("LevelEdit = ");
     Serial.println(analogRead(1));
     tm1637.display(analogRead(1));
-    delay(10000);
+    timerDelay(1000);
   }
   byte sensVal = constrain(map (analogRead(1), 0, 1023, 0, 254), 100, 254); //ограничение уровня влажности 100-254
   EEPROM.write(Wetlavelmin, sensVal );
@@ -178,19 +179,22 @@ void WetlavelEdit ()
 }
 void watering ()
 {
-  int W = 1;
-  unsigned long ts = millis();
   digitalWrite(pomp, HIGH);
-  /*while (W) {
-    unsigned long currentMillis = millis();
-    Serial.print("****** = ");
-    if (currentMillis - ts > 4000) W = 0;
-    }*/
+  timerDelay(4000);
   digitalWrite(pomp, LOW);
 }
 void analize ()
 {
 
+}
+void timerDelay(unsigned short t)
+{
+  bool W = 1;
+  unsigned long ts = millis();
+  while (W) {
+    unsigned long currentMillis = millis();
+    if (currentMillis - ts > t)W = 0;
+  }
 }
 void switchTimer()
 {
