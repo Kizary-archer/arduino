@@ -14,7 +14,8 @@
 #define Button 6 //кнопка режима настройки
 #define pomp 5 //помпа
 #define DispPower 4 //питание дисплея
-#define Wetlavelnow 0
+#define WetlavelEdit 1 //потенциометр
+#define Wetlavelnow 0 // датчик влажности
 TM1637 tm1637(3, 2); //Создаём объект класса TM1637, в качестве параметров передаём номера пинов подключения
 iarduino_RTC time(RTC_DS1307);
 void EEPROMread();
@@ -22,7 +23,7 @@ void EEPROMwrite();
 void EEPROMclear();
 void switchTimer();
 void help();
-void WetlavelEdit();
+void WetlavelEditor();
 void timerDelay();
 void analize ();
 
@@ -36,14 +37,14 @@ void setup()
   pinMode(DispPower, OUTPUT);
   digitalWrite(DispPower, HIGH);
   Serial.begin(9600);
-  MsTimer2::set(1000, switchTimer); // задаем период прерывания по таймеру 500 мс
+  MsTimer2::set(500, switchTimer); // задаем период прерывания по таймеру 500 мс
   MsTimer2::start();
   time.begin();
   time.period(10);
   time.gettime();
   tm1637.init();
   tm1637.set(BRIGHT_DARKEST);
-  Serial.println("v1.9.2");
+  Serial.println("v1.9.3");
   Serial.println(time.gettime("d-m-Y, H:i:s, D"));
   Serial.println("enter h for help");
   byte addr = EEPROM.read(countlog);
@@ -155,7 +156,7 @@ void EEPROMclear(unsigned short ind)
   EEPROM.write(keeper, 0);
   resetFunc();
 }
-void WetlavelEdit ()
+void WetlavelEditor ()
 {
   digitalWrite(WetlavelEditPower, HIGH);
   digitalWrite(WetsensorPower, HIGH);
@@ -164,17 +165,17 @@ void WetlavelEdit ()
   while (digitalRead(Button) == LOW)
   {
     Serial.print("LevelEdit = ");
-    Serial.println(analogRead(1));
-    tm1637.display(analogRead(1));
-    timerDelay(1000);
+    Serial.println(analogRead(WetlavelEdit));
+    tm1637.display(analogRead(WetlavelEdit));
+    delay(10000);
   }
-  byte sensVal = constrain(map (analogRead(1), 0, 1023, 0, 254), 100, 254); //ограничение уровня влажности 100-254
+  byte sensVal = constrain(map (analogRead(WetlavelEdit), 0, 1023, 0, 254), 100, 254); //ограничение уровня влажности 100-254
   EEPROM.write(Wetlavelmin, sensVal );
-  Serial.println(analogRead(1));
+  Serial.println(analogRead(WetlavelEdit));
   tm1637.point(false);
   digitalWrite(WetlavelEditPower, LOW);
   byte addr = EEPROM.read(countlog);
-  int val = map(EEPROM.read(addr - 1), 0 , 255 , 0, 1023 );
+  int val = map(EEPROM.read(addr - 1), 0 , 255 , 0, 1024 );
   tm1637.display(val);
 }
 void watering ()
@@ -185,15 +186,17 @@ void watering ()
 }
 void analize ()
 {
-
+  Serial.println("***");
+  timerDelay(2000);
+  Serial.println(analogRead(Wetlavelnow));
 }
 void timerDelay(unsigned short t)
 {
-  bool W = 1;
   unsigned long ts = millis();
-  while (W) {
+  while (1) {
     unsigned long currentMillis = millis();
-    if (currentMillis - ts > t)W = 0;
+   // Serial.println(currentMillis/1000);
+    if (currentMillis - ts > t)break;
   }
 }
 void switchTimer()
@@ -201,15 +204,12 @@ void switchTimer()
   if (Serial.available() > 0)
   {
     byte val = Serial.read();
-    if (val == 'w') EEPROMwrite();
-    else if (val == 'r') EEPROMread(EEPROM.read(countlog));
+    if (val == 'r') EEPROMread(EEPROM.read(countlog));
     else if (val == 'a') EEPROMread(1024);
-    else if (val == 'n') digitalWrite(WetsensorPower , ! digitalRead(WetsensorPower));
     else if (val == 'c') EEPROMclear(255);
-    else if (val == 'C') EEPROMclear(1023); //после запуска функции нужно установить мин. влажность!!!
+    else if (val == 'C') EEPROMclear(1024); //после запуска функции нужно установить мин. влажность!!!
     else if (val == 'R') resetFunc();
-    else if (val == 'W') watering ();
-    else if (val == 'm')  digitalWrite(pomp , ! digitalRead(pomp));
+    else if (val == 'W')  digitalWrite(pomp , ! digitalRead(pomp));
     else if (val == 'h') help();
     else
     {
@@ -218,18 +218,16 @@ void switchTimer()
     }
     Serial.clear(); // очистка буфера !!!
   }
-  if (digitalRead(Button) == LOW) WetlavelEdit();
+  if (digitalRead(Button) == LOW) WetlavelEditor();
 }
 void help()
 {
   Serial.println("****** HELP ******");
-  Serial.println("w - the entry in memory");
   Serial.println("r - reading data in the memory");
   Serial.println("c - clear the memory");
   Serial.println("C - clear all the memory");
   Serial.println("h - help");
   Serial.println("R - Restart");
   Serial.println("a - Read all");
-  Serial.println("n - WetsensorActivate");
-  Serial.println("m - PompActivate");
+  Serial.println("W - PompActivate");
 }
