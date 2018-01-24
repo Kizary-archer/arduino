@@ -25,7 +25,8 @@ void switchTimer();
 void help();
 void WetlavelEditor();
 void timerDelay();
-void analize ();
+void analize();
+void memoryFull();
 
 void setup()
 {
@@ -44,7 +45,7 @@ void setup()
   time.gettime();
   tm1637.init();
   tm1637.set(BRIGHT_DARKEST);
-  Serial.println("v1.9.3");
+  Serial.println("v1.9.4");
   Serial.println(time.gettime("d-m-Y, H:i:s, D"));
   Serial.println("enter h for help");
   byte addr = EEPROM.read(countlog);
@@ -69,18 +70,19 @@ void loop()
   time.gettime();
   if (time.Hours != EEPROM.read(Hour)) EEPROMwrite();
 }
-
-void EEPROMwrite()
+void memoryFull()
 {
-  MsTimer2::stop();
-  byte addr = EEPROM.read(countlog), full = EEPROM.read(256);
-  if (addr >= 255) //Переполнение памяти EEPROM
-  {
+  byte full = EEPROM.read(256);
     EEPROM.write(keeper, 0);
     full++; //счетчик переполнений
     EEPROM.write(256, full);
-    resetFunc();
-  }
+    resetFunc(); 
+}
+void EEPROMwrite()
+{
+  MsTimer2::stop();
+  byte addr = EEPROM.read(countlog);
+  if (addr >= 255) memoryFull(); //Переполнение памяти EEPROM
   time.gettime();
   Serial.println("****** Write start ******");
   Serial.print("value");
@@ -96,7 +98,7 @@ void EEPROMwrite()
   int val = map(EEPROM.read(addr), 0 , 255 , 0, 1023 );
   digitalWrite(WetsensorPower, LOW);
   tm1637.display(val);
-  if (EEPROM.read(addr) > EEPROM.read(Wetlavelmin)) watering (); //полив
+  if (EEPROM.read(addr) < EEPROM.read(Wetlavelmin)) watering (); //полив
   addr++;
   EEPROM.write(countlog, addr);
   EEPROM.write(Hour, time.Hours);
