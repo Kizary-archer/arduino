@@ -5,7 +5,7 @@
 #define TimeSensorHours 1000 //Час в памяти
 #define TimeSensorDays 1001 //День в памяти
 #define TimeSensorMonth 1002 // Месяц в памяти
-#define keeper 1003 //Сторож перезаписи данных
+#define keeper 1003 //Сторож первого запуска
 #define countlog 1004 // размер лога
 #define Hour 1005 // Час последней записи 
 #define Wetlavelmin 1006 // минимальный уровень влажности
@@ -45,7 +45,7 @@ void setup()
   time.gettime();
   tm1637.init();
   tm1637.set(BRIGHT_DARKEST);
-  Serial.println("v1.9.4");
+  Serial.println("v1.9.5");
   Serial.println(time.gettime("d-m-Y, H:i:s, D"));
   Serial.println("enter h for help");
   byte addr = EEPROM.read(countlog);
@@ -72,11 +72,9 @@ void loop()
 }
 void memoryFull()
 {
-  byte full = EEPROM.read(256);
-    EEPROM.write(keeper, 0);
-    full++; //счетчик переполнений
-    EEPROM.write(256, full);
-    resetFunc(); 
+  EEPROM.write(keeper, 0);
+  EEPROMclear(255);
+  resetFunc();
 }
 void EEPROMwrite()
 {
@@ -94,14 +92,18 @@ void EEPROMwrite()
   Serial.println(analogRead(Wetlavelnow));
   EEPROM.write(addr, time.Hours);
   addr++;
+  if (map (analogRead(Wetlavelnow), 0, 1023, 0, 255) < EEPROM.read(Wetlavelmin)) 
+  {
+  watering (); //полив
+  timerDelay(10000);
+  }
   EEPROM.write(addr, map (analogRead(Wetlavelnow), 0, 1023, 0, 255));
-  int val = map(EEPROM.read(addr), 0 , 255 , 0, 1023 );
+  int val = analogRead(Wetlavelnow);
   digitalWrite(WetsensorPower, LOW);
-  tm1637.display(val);
-  if (EEPROM.read(addr) < EEPROM.read(Wetlavelmin)) watering (); //полив
   addr++;
   EEPROM.write(countlog, addr);
   EEPROM.write(Hour, time.Hours);
+  tm1637.display(val);
   MsTimer2::start();
 }
 
@@ -197,7 +199,7 @@ void timerDelay(unsigned short t)
   unsigned long ts = millis();
   while (1) {
     unsigned long currentMillis = millis();
-   // Serial.println(currentMillis/1000);
+    // Serial.println(currentMillis/1000);
     if (currentMillis - ts > t)break;
   }
 }
@@ -211,6 +213,7 @@ void switchTimer()
     else if (val == 'c') EEPROMclear(255);
     else if (val == 'C') EEPROMclear(1024); //после запуска функции нужно установить мин. влажность!!!
     else if (val == 'R') resetFunc();
+    else if (val == 'A') analize();
     else if (val == 'W')  digitalWrite(pomp , ! digitalRead(pomp));
     else if (val == 'h') help();
     else
@@ -231,5 +234,6 @@ void help()
   Serial.println("h - help");
   Serial.println("R - Restart");
   Serial.println("a - Read all");
+  Serial.println("A - Wet analize");
   Serial.println("W - PompActivate");
 }
