@@ -1,5 +1,6 @@
-# arduino
+# arduino 
 
-Project "automatic_watering"
-version 1.9.5 (experimental)
+Project "automatic watering"
+version 1.9.5
+
 
