@@ -59,6 +59,7 @@ void setup()
     EEPROM.write(keeper, 1);
     EEPROM.write(countlog, 0);
     EEPROM.write(Hour, time.Hours);
+    EEPROMwrite();
   }
   if (EEPROM.read(Wetlavelmin) == 0) EEPROM.write(Wetlavelmin, 150);//минимальный уровень влажности при не установленном вручную
 }
