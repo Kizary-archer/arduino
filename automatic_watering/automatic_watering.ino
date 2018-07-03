@@ -3,13 +3,16 @@
 #include <iarduino_RTC.h>
 #include <MsTimer2.h>
 ////////////Settings///////////////
-#define WetsensorPower 8 //подача питания на датчик влажности
-#define WetlavelEditPower 7 //питание патенциометра
-#define Button 6 //кнопка режима настройки
-#define pomp 5 //помпа
+//analog pin
+#define Wetlavelnow map (analogRead(0), 280, 580, 0, 100) // датчик влажности
+#define WetlavelEdit map (analogRead(1), 0, 1023, 0, 100) //потенциометр
+//digit pin
 #define DispPower 4 //питание дисплея
-#define WetlavelEdit 1 //потенциометр
-#define Wetlavelnow 0 // датчик влажности
+#define pomp 5 //помпа
+#define Button 6 //кнопка режима настройки
+#define WetlavelEditPower 7 //питание патенциометра
+#define WetsensorPower 8 //подача питания на датчик влажности
+//EEPROM memory
 #define keeper 1008 //Сторож первого запуска
 #define countlog word(EEPROM.read(1010),EEPROM.read(1011)) // размер лога
 #define Wetlavelmin 1009 // минимальный уровень влажности
@@ -22,17 +25,6 @@
 
 TM1637 tm1637(3, 2); //Создаём объект класса TM1637, в качестве параметров передаём номера пинов подключения
 iarduino_RTC time(RTC_DS1307);
-
-void EEPROMwrite();
-void EEPROMread();
-void EEPROMclear();
-void SerialReadTimer();
-void WetlavelEditor();
-void timerDelay();
-bool analize();
-void CountLogValue();
-void reStart();
-void SerialReadTimer();
 void setup()
 {
   pinMode(Wetlavelnow, INPUT);
@@ -75,20 +67,20 @@ void loop()
     MsTimer2::stop();
     digitalWrite(WetsensorPower, HIGH);
     timerDelay(2000);
-    if (map (analogRead(Wetlavelnow), 280, 580, 0, 100) > EEPROM.read(Wetlavelmin))
+    if (Wetlavelnow > EEPROM.read(Wetlavelmin))
       if (analize())
-        wathering (); //полив
-        EEPROMwrite();
-        digitalWrite(WetsensorPower, LOW);
-        MsTimer2::start();
-      }
+        watering (); //полив
+    EEPROMwrite();
+    digitalWrite(WetsensorPower, LOW);
+    MsTimer2::start();
+  }
 }
 void EEPROMwrite()
 {
   time.gettime();
   unsigned short addr = countlog + 1;
   if (addr > 999) reStart(); //Переполнение памяти EEPROM
-  EEPROM.update(addr, map (analogRead(Wetlavelnow), 280, 580, 0, 100));
+  EEPROM.update(addr, Wetlavelnow);
   CountLogValue(addr);
   EEPROM.update(TimeSensorHourLast, time.Hours);
   int val = EEPROM.read(addr);
@@ -123,12 +115,6 @@ void EEPROMclear(unsigned short ind)
     EEPROM.update(i, 0);
   reStart();
 }
-void CountLogValue (short value)
-{
-  value = constrain(value, -1, 999); //диапазон лога
-  EEPROM.update(1010, highByte(value));
-  EEPROM.update(1011, lowByte(value));
-}
 void WetlavelEditor ()
 {
   digitalWrite(WetlavelEditPower, HIGH);
@@ -137,11 +123,11 @@ void WetlavelEditor ()
   tm1637.point(true);
   while (digitalRead(Button) == LOW)
   {
-    byte sensVal = constrain(map (analogRead(Wetlavelnow), 0, 1023, 0, 100), 20, 100); //ограничение уровня влажности 20-100
+    byte sensVal = constrain(WetlavelEdit, 10, 100); //ограничение уровня влажности 10-100
     tm1637.display(sensVal);
     delay(10000);
   }
-  byte sensVal = constrain(map (analogRead(Wetlavelnow), 0, 1023, 0, 100), 20, 100); //ограничение уровня влажности 20-100
+  byte sensVal = constrain(WetlavelEdit, 10, 100); //ограничение уровня влажности 10-100
   EEPROM.update(Wetlavelmin, sensVal );
   tm1637.point(false);
   digitalWrite(WetlavelEditPower, LOW);
@@ -156,7 +142,7 @@ void watering ()
 }
 bool analize ()
 {
-  if (map (analogRead(Wetlavelnow), 280, 580, 0, 100) > 10)
+  if (Wetlavelnow > 10)
     return 1;
   else return 0;
 }
@@ -168,16 +154,11 @@ void timerDelay(unsigned short t)
     if (currentMillis - ts > t)break;
   }
 }
-void help()
+void CountLogValue (short value)
 {
-  Serial.println("****** HELP ******");
-  Serial.println("r - reading data in the memory");
-  Serial.println("a - read all");
-  Serial.println("c - clear the memory");
-  Serial.println("C - clear all the memory");
-  Serial.println("h - help");
-  Serial.println("s - Reset");
-  Serial.println("R - Restart");
+  value = constrain(value, -1, 999); //диапазон лога
+  EEPROM.update(1010, highByte(value));
+  EEPROM.update(1011, lowByte(value));
 }
 void SerialReadTimer()
 {
@@ -198,4 +179,15 @@ void SerialReadTimer()
       Serial.println("enter h for help");
     }
   }
+}
+void help()
+{
+  Serial.println("****** HELP ******");
+  Serial.println("r - reading data in the memory");
+  Serial.println("a - read all");
+  Serial.println("c - clear the memory");
+  Serial.println("C - clear all the memory");
+  Serial.println("h - help");
+  Serial.println("s - Reset");
+  Serial.println("R - Restart");
 }
