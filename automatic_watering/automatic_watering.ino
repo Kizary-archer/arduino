@@ -4,7 +4,7 @@
 #include <MsTimer2.h>
 ////////////Settings///////////////
 //analog pin
-#define Wetlavelnow map (analogRead(0), 280, 580, 0, 100) // датчик влажности
+#define Wetlavelnow map (analogRead(0), 280, 580, 100, 0) // датчик влажности
 #define WetlavelEdit map (analogRead(1), 0, 1023, 0, 100) //потенциометр
 //digit pin
 #define DispPower 4 //питание дисплея
@@ -54,7 +54,10 @@ void setup()
 
     EEPROM.update(keeper, 1);
     CountLogValue(-1); //начальное значение
+    digitalWrite(WetsensorPower, HIGH);
+    timerDelay(5000);
     EEPROMwrite();
+    digitalWrite(WetsensorPower, LOW);
   }
 }
 
@@ -65,12 +68,12 @@ void loop()
   time.gettime();
   if (time.Hours != EEPROM.read(TimeSensorHourLast)) {
     MsTimer2::stop();
+    EEPROMwrite();
     digitalWrite(WetsensorPower, HIGH);
-    timerDelay(2000);
-    if (Wetlavelnow > EEPROM.read(Wetlavelmin))
+    timerDelay(5000);
+    if (Wetlavelnow < EEPROM.read(Wetlavelmin))
       if (analize())
         watering (); //полив
-    EEPROMwrite();
     digitalWrite(WetsensorPower, LOW);
     MsTimer2::start();
   }
@@ -123,11 +126,11 @@ void WetlavelEditor ()
   tm1637.point(true);
   while (digitalRead(Button) == LOW)
   {
-    byte sensVal = constrain(WetlavelEdit, 10, 100); //ограничение уровня влажности 10-100
+    byte sensVal = constrain(WetlavelEdit, 0, 100);
     tm1637.display(sensVal);
     delay(10000);
   }
-  byte sensVal = constrain(WetlavelEdit, 10, 100); //ограничение уровня влажности 10-100
+  byte sensVal = constrain(WetlavelEdit, 0, 100);
   EEPROM.update(Wetlavelmin, sensVal );
   tm1637.point(false);
   digitalWrite(WetlavelEditPower, LOW);
@@ -142,7 +145,7 @@ void watering ()
 }
 bool analize ()
 {
-  if (Wetlavelnow > 10)
+  if (Wetlavelnow <= 100)
     return 1;
   else return 0;
 }
