@@ -68,12 +68,12 @@ void loop()
   time.gettime();
   if (time.Hours != EEPROM.read(TimeSensorHourLast)) {
     MsTimer2::stop();
-    EEPROMwrite();
     digitalWrite(WetsensorPower, HIGH);
     timerDelay(5000);
     if (Wetlavelnow < EEPROM.read(Wetlavelmin))
       if (analize())
         watering (); //полив
+    EEPROMwrite();
     digitalWrite(WetsensorPower, LOW);
     MsTimer2::start();
   }
