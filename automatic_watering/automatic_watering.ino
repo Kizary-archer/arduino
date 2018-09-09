@@ -33,6 +33,7 @@ bool analize();
 void CountLogValue();
 void reStart();
 void SerialReadTimer();
+
 void setup()
 {
   pinMode(Wetlavelnow, INPUT);
@@ -171,6 +172,7 @@ void EEPROMread(unsigned short ind)
     Serial.println("h - help");
     Serial.println("s - Reset");
     Serial.println("R - Restart");
+    Serial.println("v - version");
   }
   void SerialReadTimer()
   {
@@ -184,6 +186,7 @@ void EEPROMread(unsigned short ind)
       else if (event == 'a') EEPROMread(1023);
       else if (event == 'c') EEPROMclear(countlog);
       else if (event == 'C') EEPROMclear(1023);
+      else if (event == 'v') Serial.println("v 2.0");
       else if (event == 's') reStart();
       else
       {
