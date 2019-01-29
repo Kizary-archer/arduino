@@ -2,31 +2,28 @@
 #include "TM1637.h"
 #include <iarduino_RTC.h>
 #include <MsTimer2.h>
-
 ////////////Settings///////////////
-
-//ANALOG_PIN
-#define Wetlavelnow 0 // датчик влажности
-#define WetlavelEdit 1 //потенциометр
-
-//DIGIT_PIN
-TM1637 tm1637(3, 2); //Создаём объект класса TM1637, в качестве параметров передаём номера пинов подключения
+//analog pin
+#define Wetlavelnow map (analogRead(0), 280, 580, 100, 0) // датчик влажности
+#define WetlavelEdit map (analogRead(1), 0, 1023, 0, 100) //потенциометр
+//digit pin
 #define DispPower 4 //питание дисплея
 #define pomp 5 //помпа
 #define Button 6 //кнопка режима настройки
 #define WetlavelEditPower 7 //питание патенциометра
 #define WetsensorPower 8 //подача питания на датчик влажности
-
-//EEPROM
+//EEPROM memory
+#define keeper 1008 //Сторож первого запуска
+#define countlog word(EEPROM.read(1010),EEPROM.read(1011)) // размер лога
+#define Wetlavelmin 1009 // минимальный уровень влажности
+//дата начала измерений
 #define TimeSensorHourStart 1000 //Час в памяти
 #define TimeSensorDaysStart 1001 //День в памяти
 #define TimeSensorMonthStart 1002 // Месяц в памяти
 #define TimeSensorYearStart 1003 // Год в памяти
 #define TimeSensorHourLast 1004 //Час последней записи в памяти
-#define keeper 1008 //Сторож первого запуска
-#define Wetlavelmin 1009 // минимальный уровень влажности
-#define countlog word(EEPROM.read(1010),EEPROM.read(1011)) // размер лога
 
+TM1637 tm1637(3, 2); //Создаём объект класса TM1637, в качестве параметров передаём номера пинов подключения
 iarduino_RTC time(RTC_DS1307);
 
 void setup()
@@ -39,7 +36,7 @@ void setup()
   pinMode(DispPower, OUTPUT);
   digitalWrite(DispPower, HIGH);
   Serial.begin(9600);
-  MsTimer2::set(100, SerialReadTimer); // задаем период прерывания по таймеру 100 мс
+  MsTimer2::set(500, SerialReadTimer); // задаем период прерывания по таймеру 100 мс
   MsTimer2::start();
   time.begin();
   time.period(1);
@@ -58,19 +55,26 @@ void setup()
 
     EEPROM.update(keeper, 1);
     CountLogValue(-1); //начальное значение
+    digitalWrite(WetsensorPower, HIGH);
+    timerDelay(5000);
     EEPROMwrite();
+    digitalWrite(WetsensorPower, LOW);
   }
 }
+
 void(* resetFunc) (void) = 0;//перезагрузка
+
 void loop()
 {
+  Serial.println(analize());
   time.gettime();
   if (time.Hours != EEPROM.read(TimeSensorHourLast)) {
     MsTimer2::stop();
     digitalWrite(WetsensorPower, HIGH);
-    timerDelay(2000);
-    if (map (analogRead(Wetlavelnow), 0, 1023, 0, 100) < EEPROM.read(Wetlavelmin))
-      watering (); //полив
+    timerDelay(5000);
+    if (Wetlavelnow < EEPROM.read(Wetlavelmin))
+      if (analize())
+        watering (); //полив
     EEPROMwrite();
     digitalWrite(WetsensorPower, LOW);
     MsTimer2::start();
@@ -81,7 +85,7 @@ void EEPROMwrite()
   time.gettime();
   unsigned short addr = countlog + 1;
   if (addr > 999) reStart(); //Переполнение памяти EEPROM
-  EEPROM.update(addr, map (analogRead(Wetlavelnow), 0, 1023, 0, 100));
+  EEPROM.update(addr, Wetlavelnow);
   CountLogValue(addr);
   EEPROM.update(TimeSensorHourLast, time.Hours);
   int val = EEPROM.read(addr);
@@ -116,25 +120,18 @@ void EEPROMclear(unsigned short ind)
     EEPROM.update(i, 0);
   reStart();
 }
-void CountLogValue (short value)
-{
-  value = constrain(value, -1, 999); //диапазон лога
-  EEPROM.update(1010, highByte(value));
-  EEPROM.update(1011, lowByte(value));
-}
 void WetlavelEditor ()
 {
   digitalWrite(WetlavelEditPower, HIGH);
-  digitalWrite(WetsensorPower, HIGH);
   digitalWrite(pomp, LOW);
   tm1637.point(true);
   while (digitalRead(Button) == LOW)
   {
-    byte sensVal = constrain(map (analogRead(WetlavelEdit), 0, 1023, 0, 100), 20, 100); //ограничение уровня влажности 20-100
+    byte sensVal = constrain(WetlavelEdit, 0, 100);
     tm1637.display(sensVal);
     delay(10000);
   }
-  byte sensVal = constrain(map (analogRead(WetlavelEdit), 0, 1023, 0, 100), 20, 100); //ограничение уровня влажности 20-100
+  byte sensVal = constrain(WetlavelEdit, 0, 100);
   EEPROM.update(Wetlavelmin, sensVal );
   tm1637.point(false);
   digitalWrite(WetlavelEditPower, LOW);
@@ -147,6 +144,53 @@ void watering ()
   timerDelay(4000);
   digitalWrite(pomp, LOW);
 }
+bool analize ()
+{
+  byte LastWetLavel = Wetlavelnow;
+  byte counter = 0;
+  byte i = 100;
+  while (i)
+  {
+    byte WLN  = Wetlavelnow;
+    if (LastWetLavel > WLN)
+    {
+      byte if1 = ((LastWetLavel - WLN) / LastWetLavel) * 100;
+      if ( if1 > 100)
+        counter++;
+      Serial.print("a>b ");
+      Serial.println(if1);
+    } else
+    {
+      byte if2 = ((WLN - LastWetLavel) / LastWetLavel) * 100;
+      if (if2 > 10)
+        counter++;
+      Serial.print("a<b ");
+      Serial.println(if2);
+    }
+    Serial.println(LastWetLavel);
+    Serial.println(WLN);
+    Serial.println(counter);
+    Serial.println("******11111******");
+    timerDelay(100);
+    i--;
+  }
+  Serial.println(counter);
+  Serial.println("******222222******");
+
+  if (counter < 5)
+    return 1;
+  else return 0;
+}
+void testModules()
+{
+  while (1)
+  {
+    Serial.println(analogRead(0));
+    Serial.println(Wetlavelnow);
+    if (!Serial.available())break;
+    delay(100000);
+  }
+}
 void timerDelay(unsigned short t)
 {
   unsigned long ts = millis();
@@ -155,36 +199,61 @@ void timerDelay(unsigned short t)
     if (currentMillis - ts > t)break;
   }
 }
-void help()
+void CountLogValue (short value)
 {
-  Serial.println("****** HELP ******");
-  Serial.println("r - reading data in the memory");
-  Serial.println("a - read all");
-  Serial.println("c - clear the memory");
-  Serial.println("C - clear all the memory");
-  Serial.println("h - help");
-  Serial.println("s - Reset");
-  Serial.println("R - Restart");
-  Serial.println("v - version");
+  value = constrain(value, -1, 999); //диапазон лога
+  EEPROM.update(1010, highByte(value));
+  EEPROM.update(1011, lowByte(value));
 }
 void SerialReadTimer()
 {
   if (digitalRead(Button) == LOW) WetlavelEditor();
   if (Serial.available() > 0)
   {
-    byte event = Serial.read();
-    if (event == 'h') help();
-    else if (event == 'R') resetFunc();
-    else if (event == 'r') EEPROMread(countlog);
-    else if (event == 'a') EEPROMread(1023);
-    else if (event == 'c') EEPROMclear(countlog);
-    else if (event == 'C') EEPROMclear(1023);
-    else if (event == 'v') Serial.println("v 2.0");
-    else if (event == 's') reStart();
-    else
+    int event = Serial.read();
+    switch (event)
     {
-      Serial.println("this command does not exist");
-      Serial.println("enter h for help");
+      case 49:
+        help();
+        break;
+      case 50:
+        EEPROMread(countlog);
+        break;
+      case 51:
+        EEPROMread(1023);
+        break;
+      case 52:
+        EEPROMclear(countlog);
+        break;
+      case 53:
+        EEPROMclear(1023);
+        break;
+      case 54:
+        reStart();
+        break;
+      case 55:
+        testModules();
+        break;
+      case 56:
+        resetFunc();
+        break;
+      case 10:
+        Serial.println("**********************");
+        break;
+      default:
+        Serial.println("this command does not exist\n enter 1 for help");
     }
   }
+}
+void help()
+{
+  Serial.println("****** HELP ******");
+  Serial.println("1 - help");
+  Serial.println("2 - reading water lavel log");
+  Serial.println("3 - read all");
+  Serial.println("4 - clear water lavel log");
+  Serial.println("5 - clear all the memory");
+  Serial.println("6 - Restart");
+  Serial.println("7 - testModules");
+  Serial.println("8 - Reset");
 }
