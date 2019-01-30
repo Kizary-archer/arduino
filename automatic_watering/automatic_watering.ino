@@ -148,36 +148,23 @@ bool analize ()
 {
   byte LastWetLavel = Wetlavelnow;
   byte counter = 0;
-  byte i = 100;
-  while (i)
+
+  for (byte i = 0; i < 100; i++)
   {
-    byte WLN  = Wetlavelnow;
-    if (LastWetLavel > WLN)
+    if (LastWetLavel > Wetlavelnow)
     {
-      byte if1 = ((LastWetLavel - WLN) / LastWetLavel) * 100;
-      if ( if1 > 100)
+      double if1 = abs(((LastWetLavel - Wetlavelnow) * 100) / LastWetLavel);
+      if ( if1 > 5)
         counter++;
-      Serial.print("a>b ");
-      Serial.println(if1);
     } else
     {
-      byte if2 = ((WLN - LastWetLavel) / LastWetLavel) * 100;
-      if (if2 > 10)
+      double if2 = abs(((Wetlavelnow - LastWetLavel) * 100) / LastWetLavel);
+      if (if2 > 5)
         counter++;
-      Serial.print("a<b ");
-      Serial.println(if2);
     }
-    Serial.println(LastWetLavel);
-    Serial.println(WLN);
-    Serial.println(counter);
-    Serial.println("******11111******");
-    timerDelay(100);
-    i--;
+    timerDelay(10);
   }
-  Serial.println(counter);
-  Serial.println("******222222******");
-
-  if (counter < 5)
+  if (counter < 10)
     return 1;
   else return 0;
 }
@@ -237,6 +224,9 @@ void SerialReadTimer()
       case 56:
         resetFunc();
         break;
+      case 57:
+        resetFunc();
+        break;
       case 10:
         Serial.println("**********************");
         break;
@@ -256,4 +246,5 @@ void help()
   Serial.println("6 - Restart");
   Serial.println("7 - testModules");
   Serial.println("8 - Reset");
+  Serial.println("9 - TestModules");
 }
