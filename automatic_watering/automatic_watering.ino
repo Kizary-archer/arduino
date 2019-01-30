@@ -162,7 +162,7 @@ bool analize ()
       if (if2 > 5)
         counter++;
     }
-    timerDelay(10);
+    timerDelay(100);
   }
   if (counter < 10)
     return 1;
@@ -170,13 +170,10 @@ bool analize ()
 }
 void testModules()
 {
-  while (1)
-  {
-    Serial.println(analogRead(0));
-    Serial.println(Wetlavelnow);
-    if (!Serial.available())break;
-    delay(100000);
-  }
+  Serial.println(time.gettime("d-m-Y, H:i:s, D")); // выводим время
+  Serial.print("Wetlavelnow = ");
+  Serial.println(Wetlavelnow);
+
 }
 void timerDelay(unsigned short t)
 {
@@ -224,9 +221,6 @@ void SerialReadTimer()
       case 56:
         resetFunc();
         break;
-      case 57:
-        resetFunc();
-        break;
       case 10:
         Serial.println("**********************");
         break;
@@ -246,5 +240,4 @@ void help()
   Serial.println("6 - Restart");
   Serial.println("7 - testModules");
   Serial.println("8 - Reset");
-  Serial.println("9 - TestModules");
 }
