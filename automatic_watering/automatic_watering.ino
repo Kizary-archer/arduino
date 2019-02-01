@@ -37,7 +37,6 @@ void setup()
   digitalWrite(DispPower, HIGH);
   Serial.begin(9600);
   MsTimer2::set(500, SerialReadTimer); // задаем период прерывания по таймеру 100 мс
-  MsTimer2::start();
   time.begin();
   time.period(1);
   tm1637.init();
@@ -60,13 +59,18 @@ void setup()
     EEPROMwrite();
     digitalWrite(WetsensorPower, LOW);
   }
+  Serial.print("Current date ");
+  Serial.println(time.gettime("d-m-Y, H:i:s, D"));
+  Serial.print("Required humidity ");
+  Serial.println(EEPROM.read(Wetlavelmin));
+  help();
+  MsTimer2::start();
 }
 
 void(* resetFunc) (void) = 0;//перезагрузка
 
 void loop()
 {
-  Serial.println(analize());
   time.gettime();
   if (time.Hours != EEPROM.read(TimeSensorHourLast)) {
     MsTimer2::stop();
@@ -162,17 +166,22 @@ bool analize ()
       if (if2 > 5)
         counter++;
     }
-    timerDelay(100);
+    timerDelay(10);
   }
   if (counter < 10)
     return 1;
   else return 0;
 }
-void testModules()
+void info()
 {
+  digitalWrite(WetsensorPower, HIGH);
+  delay(2000);
   Serial.println(time.gettime("d-m-Y, H:i:s, D")); // выводим время
-  Serial.print("Wetlavelnow = ");
+  Serial.print("Required humidity ");
+  Serial.println(EEPROM.read(Wetlavelmin));
+  Serial.print("Wetlavelnow ");
   Serial.println(Wetlavelnow);
+  digitalWrite(WetsensorPower, LOW);
 
 }
 void timerDelay(unsigned short t)
@@ -216,7 +225,7 @@ void SerialReadTimer()
         reStart();
         break;
       case 55:
-        testModules();
+        info();
         break;
       case 56:
         resetFunc();
@@ -237,7 +246,7 @@ void help()
   Serial.println("3 - read all");
   Serial.println("4 - clear water lavel log");
   Serial.println("5 - clear all the memory");
-  Serial.println("6 - Restart");
-  Serial.println("7 - testModules");
+  Serial.println("6 - Restart"); //WARNING!!! CLEAR THE MEMORY
+  Serial.println("7 - info");
   Serial.println("8 - Reset");
 }
