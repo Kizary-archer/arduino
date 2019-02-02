@@ -184,6 +184,14 @@ void info()
   digitalWrite(WetsensorPower, LOW);
 
 }
+void MinWetLavelUSB()
+{
+  int val = Serial.parseInt();
+  EEPROM.update(Wetlavelmin, constrain(val,0,100));
+  Serial.println();
+  info();
+
+}
 void timerDelay(unsigned short t)
 {
   unsigned long ts = millis();
@@ -230,6 +238,9 @@ void SerialReadTimer()
       case 56:
         resetFunc();
         break;
+      case 57:
+        MinWetLavelUSB();
+        break;
       case 10:
         Serial.println("**********************");
         break;
@@ -249,4 +260,5 @@ void help()
   Serial.println("6 - Restart"); //WARNING!!! CLEAR THE MEMORY
   Serial.println("7 - info");
   Serial.println("8 - Reset");
+  Serial.println("9 - Required humidity");
 }
