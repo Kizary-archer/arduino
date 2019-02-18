@@ -23,7 +23,9 @@
 #define TimeSensorYearStart 1003 // Год в памяти
 #define TimeSensorHourLast 1004 //Час последней записи в памяти
 
-TM1637 tm1637(3, 2); //Создаём объект класса TM1637, в качестве параметров передаём номера пинов подключения
+#define CLK 3     
+#define DIO 2
+TM1637 tm1637(CLK, DIO);
 iarduino_RTC time(RTC_DS1307);
 
 void setup()
@@ -147,6 +149,7 @@ void watering ()
   digitalWrite(pomp, HIGH);
   timerDelay(4000);
   digitalWrite(pomp, LOW);
+  Serial.println("=====");
 }
 bool analize ()
 {
@@ -174,14 +177,11 @@ bool analize ()
 }
 void info()
 {
-  digitalWrite(WetsensorPower, HIGH);
-  delay(2000);
   Serial.println(time.gettime("d-m-Y, H:i:s, D")); // выводим время
   Serial.print("Required humidity ");
   Serial.println(EEPROM.read(Wetlavelmin));
   Serial.print("Wetlavelnow ");
-  Serial.println(Wetlavelnow);
-  digitalWrite(WetsensorPower, LOW);
+  Serial.println(EEPROM.read(countlog));
 
 }
 void MinWetLavelUSB()
@@ -215,7 +215,7 @@ void SerialReadTimer()
     switch (event)
     {
       case 49:
-        help();
+       digitalWrite(pomp,!digitalRead(pomp)); //help();
         break;
       case 50:
         EEPROMread(countlog);
