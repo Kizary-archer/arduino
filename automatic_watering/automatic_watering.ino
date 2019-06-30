@@ -5,12 +5,9 @@
 ////////////Settings///////////////
 //analog pin
 #define Wetlavelnow map (analogRead(0), 280, 580, 100, 0) // датчик влажности
-#define WetlavelEdit map (analogRead(1), 0, 1023, 0, 100) //потенциометр
 //digit pin
 #define DispPower 4 //питание дисплея
 #define pomp 5 //помпа
-#define Button 6 //кнопка режима настройки
-#define WetlavelEditPower 7 //питание патенциометра
 #define WetsensorPower 8 //подача питания на датчик влажности
 //EEPROM memory
 #define keeper 1008 //Сторож первого запуска
@@ -32,8 +29,6 @@ void setup()
 {
   pinMode(Wetlavelnow, INPUT);
   pinMode(WetsensorPower, OUTPUT);
-  pinMode(WetlavelEditPower, OUTPUT);
-  pinMode(Button, INPUT_PULLUP);
   pinMode(pomp, OUTPUT);
   pinMode(DispPower, OUTPUT);
   digitalWrite(DispPower, HIGH);
@@ -79,7 +74,6 @@ void loop()
     digitalWrite(WetsensorPower, HIGH);
     timerDelay(5000);
     if (Wetlavelnow < EEPROM.read(Wetlavelmin))
-      if (analize())
         watering (); //полив
     EEPROMwrite();
     digitalWrite(WetsensorPower, LOW);
@@ -126,24 +120,7 @@ void EEPROMclear(unsigned short ind)
     EEPROM.update(i, 0);
   reStart();
 }
-void WetlavelEditor ()
-{
-  digitalWrite(WetlavelEditPower, HIGH);
-  digitalWrite(pomp, LOW);
-  tm1637.point(true);
-  while (digitalRead(Button) == LOW)
-  {
-    byte sensVal = constrain(WetlavelEdit, 0, 100);
-    tm1637.display(sensVal);
-    delay(10000);
-  }
-  byte sensVal = constrain(WetlavelEdit, 0, 100);
-  EEPROM.update(Wetlavelmin, sensVal );
-  tm1637.point(false);
-  digitalWrite(WetlavelEditPower, LOW);
-  int val = EEPROM.read(countlog);
-  tm1637.display(val);
-}
+
 void watering ()
 {
   digitalWrite(pomp, HIGH);
@@ -151,30 +128,7 @@ void watering ()
   digitalWrite(pomp, LOW);
   Serial.println("=====");
 }
-bool analize ()
-{
-  byte LastWetLavel = Wetlavelnow;
-  byte counter = 0;
 
-  for (byte i = 0; i < 100; i++)
-  {
-    if (LastWetLavel > Wetlavelnow)
-    {
-      double if1 = abs(((LastWetLavel - Wetlavelnow) * 100) / LastWetLavel);
-      if ( if1 > 5)
-        counter++;
-    } else
-    {
-      double if2 = abs(((Wetlavelnow - LastWetLavel) * 100) / LastWetLavel);
-      if (if2 > 5)
-        counter++;
-    }
-    timerDelay(10);
-  }
-  if (counter < 10)
-    return 1;
-  else return 0;
-}
 void info()
 {
   Serial.println(time.gettime("d-m-Y, H:i:s, D")); // выводим время
@@ -208,14 +162,13 @@ void CountLogValue (short value)
 }
 void SerialReadTimer()
 {
-  if (digitalRead(Button) == LOW) WetlavelEditor();
   if (Serial.available() > 0)
   {
     int event = Serial.read();
     switch (event)
     {
       case 49:
-       digitalWrite(pomp,!digitalRead(pomp)); //help();
+       help(); //help();
         break;
       case 50:
         EEPROMread(countlog);
