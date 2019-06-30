@@ -21,7 +21,7 @@
 #define TimeSensorYearStart 1003 // Год в памяти
 #define TimeSensorHourLast 1004 //Час последней записи в памяти
 
-#define CLK 3     
+#define CLK 3
 #define DIO 2
 TM1637 tm1637(CLK, DIO);
 iarduino_RTC time(RTC_DS1307);
@@ -35,14 +35,14 @@ void setup()
   digitalWrite(DispPower, HIGH);
   Serial.begin(9600);
   MsTimer2::set(500, SerialReadTimer); // задаем период прерывания по таймеру2 500 мс
-  wdt_enable(WDTO_2S); // прерывание по таймеру 0(стороживой) каждые 2 сек
+  wdt_enable(WDTO_8S); // прерывание по таймеру 0(стороживой) каждые 2 сек
   time.begin();
   time.period(1);
   tm1637.init();
   tm1637.set(BRIGHT_DARKEST);
   int val = EEPROM.read(countlog);
   tm1637.display(val);
-  if (!EEPROM.read(Wetlavelmin)) EEPROM.update(Wetlavelmin, 60);//минимальный уровень влажности при не установленном вручную
+  if (!EEPROM.read(Wetlavelmin)) EEPROM.update(Wetlavelmin, 80);//минимальный уровень влажности при не установленном вручную
   if (!EEPROM.read(keeper))
   {
     time.gettime();
@@ -54,7 +54,7 @@ void setup()
     EEPROM.update(keeper, 1);
     CountLogValue(-1); //начальное значение
     digitalWrite(WetsensorPower, HIGH);
-    timerDelay(5000);
+    delay(5000);
     EEPROMwrite();
     digitalWrite(WetsensorPower, LOW);
   }
@@ -71,11 +71,13 @@ void loop()
   time.gettime();
   if (time.Hours != EEPROM.read(TimeSensorHourLast)) {
     digitalWrite(WetsensorPower, HIGH);
-    timerDelay(5000);
+    delay(5000);
+    MsTimer2::stop();
     if (Wetlavelnow < EEPROM.read(Wetlavelmin))
-        watering (); //полив
+      watering (); //полив
     EEPROMwrite();
     digitalWrite(WetsensorPower, LOW);
+    MsTimer2::start();
   }
 }
 void EEPROMwrite()
@@ -125,7 +127,6 @@ void watering ()
   digitalWrite(pomp, HIGH);
   timerDelay(4000);
   digitalWrite(pomp, LOW);
-  Serial.println("=====");
 }
 
 void info()
@@ -141,9 +142,9 @@ void MinWetLavelUSB()
 {
   int val = Serial.parseInt();
   Serial.print(val);
-  EEPROM.update(Wetlavelmin, constrain(val,0,100));
+  EEPROM.update(Wetlavelmin, constrain(val, 0, 100));
   Serial.println();
-  //info();
+  info();
 
 }
 void timerDelay(unsigned short t)
@@ -169,7 +170,7 @@ void SerialReadTimer()
     switch (event)
     {
       case 49:
-       help(); //help();
+        help();//help();
         break;
       case 50:
         EEPROMread(countlog);
