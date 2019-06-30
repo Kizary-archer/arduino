@@ -2,6 +2,7 @@
 #include "TM1637.h"
 #include <iarduino_RTC.h>
 #include <MsTimer2.h>
+#include <avr/wdt.h>
 ////////////Settings///////////////
 //analog pin
 #define Wetlavelnow map (analogRead(0), 280, 580, 100, 0) // датчик влажности
@@ -33,7 +34,8 @@ void setup()
   pinMode(DispPower, OUTPUT);
   digitalWrite(DispPower, HIGH);
   Serial.begin(9600);
-  MsTimer2::set(500, SerialReadTimer); // задаем период прерывания по таймеру 100 мс
+  MsTimer2::set(500, SerialReadTimer); // задаем период прерывания по таймеру2 500 мс
+  wdt_enable(WDTO_2S); // прерывание по таймеру 0(стороживой) каждые 2 сек
   time.begin();
   time.period(1);
   tm1637.init();
@@ -64,20 +66,16 @@ void setup()
   MsTimer2::start();
 }
 
-void(* resetFunc) (void) = 0;//перезагрузка
-
 void loop()
 {
   time.gettime();
   if (time.Hours != EEPROM.read(TimeSensorHourLast)) {
-    MsTimer2::stop();
     digitalWrite(WetsensorPower, HIGH);
     timerDelay(5000);
     if (Wetlavelnow < EEPROM.read(Wetlavelmin))
         watering (); //полив
     EEPROMwrite();
     digitalWrite(WetsensorPower, LOW);
-    MsTimer2::start();
   }
 }
 void EEPROMwrite()
@@ -112,7 +110,7 @@ void EEPROMread(unsigned short ind)
 void reStart()
 {
   EEPROM.update(keeper, 0);
-  resetFunc();
+  MsTimer2::stop();
 }
 void EEPROMclear(unsigned short ind)
 {
@@ -162,6 +160,7 @@ void CountLogValue (short value)
 }
 void SerialReadTimer()
 {
+  timerInterupt();
   if (Serial.available() > 0)
   {
     int event = Serial.read();
@@ -189,7 +188,7 @@ void SerialReadTimer()
         info();
         break;
       case 56:
-        resetFunc();
+        MsTimer2::stop();
         break;
       case 57:
         MinWetLavelUSB();
@@ -214,4 +213,8 @@ void help()
   Serial.println("7 - info");
   Serial.println("8 - Reset");
   Serial.println("9 - Required humidity");
+}
+void  timerInterupt()
+{
+  wdt_reset();
 }
