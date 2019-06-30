@@ -105,6 +105,7 @@ void EEPROMread(unsigned short ind)
     Serial.print(i);
     Serial.print("] = ");
     Serial.println(EEPROM.read(i));
+    wdt_reset();
   }
 }
 void reStart()
@@ -114,7 +115,7 @@ void reStart()
 }
 void EEPROMclear(unsigned short ind)
 {
-  for (unsigned short i = 0; i < ind; i++)
+  for (unsigned short i = 0; i <= ind; i++)
     EEPROM.update(i, 0);
   reStart();
 }
@@ -139,9 +140,10 @@ void info()
 void MinWetLavelUSB()
 {
   int val = Serial.parseInt();
+  Serial.print(val);
   EEPROM.update(Wetlavelmin, constrain(val,0,100));
   Serial.println();
-  info();
+  //info();
 
 }
 void timerDelay(unsigned short t)
