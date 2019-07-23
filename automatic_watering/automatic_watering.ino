@@ -21,6 +21,8 @@
 #define TimeSensorYearStart 1003 // Год в памяти
 #define TimeSensorHourLast 1004 //Час последней записи в памяти
 
+#define timerWatering 5000 //время полива;
+
 #define CLK 3
 #define DIO 2
 TM1637 tm1637(CLK, DIO);
@@ -35,14 +37,14 @@ void setup()
   digitalWrite(DispPower, HIGH);
   Serial.begin(9600);
   MsTimer2::set(500, SerialReadTimer); // задаем период прерывания по таймеру2 500 мс
-  wdt_enable(WDTO_8S); // прерывание по таймеру 0(стороживой) каждые 2 сек
+  wdt_enable(WDTO_8S); // прерывание по таймеру 0(стороживой) каждые 8 сек
   time.begin();
   time.period(1);
   tm1637.init();
   tm1637.set(BRIGHT_DARKEST);
   int val = EEPROM.read(countlog);
   tm1637.display(val);
-  if (!EEPROM.read(Wetlavelmin)) EEPROM.update(Wetlavelmin, 80);//минимальный уровень влажности при не установленном вручную
+  if (!EEPROM.read(Wetlavelmin)) EEPROM.update(Wetlavelmin, 75);//минимальный уровень влажности при не установленном вручную
   if (!EEPROM.read(keeper))
   {
     time.gettime();
@@ -125,7 +127,7 @@ void EEPROMclear(unsigned short ind)
 void watering ()
 {
   digitalWrite(pomp, HIGH);
-  timerDelay(4000);
+  timerDelay(timerWatering);
   digitalWrite(pomp, LOW);
 }
 
@@ -163,7 +165,7 @@ void CountLogValue (short value)
 }
 void SerialReadTimer()
 {
-  timerInterupt();
+  timerInterupt();//прерывание wdt
   if (Serial.available() > 0)
   {
     int event = Serial.read();
@@ -199,8 +201,6 @@ void SerialReadTimer()
       case 10:
         Serial.println("**********************");
         break;
-      default:
-        Serial.println("this command does not exist\n enter 1 for help");
     }
   }
 }
@@ -212,7 +212,7 @@ void help()
   Serial.println("3 - read all");
   Serial.println("4 - clear water lavel log");
   Serial.println("5 - clear all the memory");
-  Serial.println("6 - Restart"); //WARNING!!! CLEAR THE MEMORY
+  Serial.println("6 - Restart (WARNING!!! CLEAR THE MEMORY)");
   Serial.println("7 - info");
   Serial.println("8 - Reset");
   Serial.println("9 - Required humidity");
