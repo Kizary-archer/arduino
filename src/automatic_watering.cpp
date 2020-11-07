@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <EEPROM.h>
-#include "TM1637.h"
 #include <iarduino_RTC.h>
+#include <TM1637Display.h>
 #include <MsTimer2.h>
 #include <avr/wdt.h>
 ////////////Settings///////////////
@@ -24,9 +24,9 @@
 
 #define timerWatering 5000 //время полива;
 
-#define CLK 3
-#define DIO 2
-TM1637 tm1637(CLK, DIO);
+#define CLK 2
+#define DIO 3
+TM1637Display display(CLK, DIO);
 iarduino_RTC time(RTC_DS1307);
 
 void SerialReadTimer();
@@ -51,11 +51,10 @@ void setup()
   wdt_enable(WDTO_8S); // прерывание по таймеру 0(стороживой) каждые 8 сек
   time.begin();
   time.period(1);
-  tm1637.init();
-  tm1637.set(BRIGHT_DARKEST);
+  display.setBrightness(1,true);
   int val = EEPROM.read(countlog);
-  tm1637.display(val);
-  if (!EEPROM.read(Wetlavelmin)) EEPROM.update(Wetlavelmin, 75);//минимальный уровень влажности при не установленном вручную
+  display.showNumberDec(val,false);
+  if (!EEPROM.read(Wetlavelmin)) EEPROM.update(Wetlavelmin, 80);//минимальный уровень влажности при не установленном вручную
   if (!EEPROM.read(keeper))
   {
     time.gettime();
@@ -102,10 +101,14 @@ void EEPROMwrite()
   CountLogValue(addr);
   EEPROM.update(TimeSensorHourLast, time.Hours);
   int val = EEPROM.read(addr);
-  tm1637.display(val);
+  display.showNumberDec(val,false);
 }
 void EEPROMread(unsigned short ind)
 {
+  if(countlog < 1 && ind == countlog){
+    Serial.println("Log empty");
+    return;
+  }
   Serial.println("****** Read start ******");
   Serial.print(EEPROM.read(TimeSensorHourStart));
   Serial.print(" Hours : ");
@@ -130,6 +133,10 @@ void reStart()
 }
 void EEPROMclear(unsigned short ind)
 {
+  if(countlog < 1 && ind == countlog){
+    Serial.println("Log empty");
+    return;
+  }
   for (unsigned short i = 0; i <= ind; i++)
     EEPROM.update(i, 0);
   reStart();
@@ -151,7 +158,7 @@ void info()
   Serial.println(EEPROM.read(countlog));
 
 }
-void MinWetLavelUSB()
+void minWetLavelUSB()
 {
   int val = Serial.parseInt();
   Serial.print(val);
@@ -207,7 +214,7 @@ void SerialReadTimer()
         MsTimer2::stop();
         break;
       case 57:
-        MinWetLavelUSB();
+        minWetLavelUSB();
         break;
       case 10:
         Serial.println("**********************");
